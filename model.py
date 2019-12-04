@@ -7,7 +7,7 @@ def weight_variable(shape, name=None, trainable=True):
 
 
 def bias_variable(shape, name=None, trainable=True):
-    initial = tf.constant(0.1, shape=shape)
+    initial = tf.constant(0.01, shape=shape)
     return tf.Variable(initial, name=name, dtype=tf.float32, trainable=trainable)
 
 
@@ -295,7 +295,44 @@ def AlexNet(input , rsizemethod = 0):
     with tf.name_scope("fc3"):
         weight = weight_variable([4096, 10], name="weight")
         bias = bias_variable([10], name="bias")
-        fc = tf.nn.sigmoid(tf.matmul(drop, weight) + bias, name="activate")
+        fc = tf.matmul(drop, weight) + bias
     return fc
 
 
+def testNet(input, rsizemethod=0):
+    input = tf.image.resize_images(input, [32, 32], method=rsizemethod)
+    with tf.name_scope('conv_1'):
+        W1 = weight_variable([3, 3, 3, 32], "kernel")
+        b1 = bias_variable([32], "bias")
+        conv_1 = conv2d(input, W1, [1, 1, 1, 1], name="conv") + b1
+        conv_1 = tf.nn.relu(conv_1)
+    # 第1个池化层
+    # 将32x32图像缩小为16x16
+    with tf.name_scope('pool_1'):
+        pool_1 = maxpool2d(conv_1, [1, 2, 2, 1], [1, 2, 2, 1], name="pool")
+    # 第2个卷积层
+    # 输入通道：32，输出通道：64，卷积后图像尺寸16x16
+    with tf.name_scope('conv_2'):
+        W2 = weight_variable([3, 3, 32, 64], name="kernel")
+        b2 = bias_variable([64], name="bias")
+        conv_2 = conv2d(pool_1, W2, [1, 1, 1, 1], name="conv") + b2
+        conv_2 = tf.nn.relu(conv_2)
+    # 第2个池化层
+    # 将16x16的图像缩小为8x8
+    with tf.name_scope('pool_2'):
+        pool_2 = maxpool2d(conv_2, [1, 2, 2, 1], [1, 2, 2, 1], name="pool")
+    # 全连接层
+    # 将第2个池化层的64个图像转化为一维的向量，长度是8x8x64=4096
+    with tf.name_scope('fc'):
+        W3 = weight_variable([4096, 128], "weight")
+        b3 = bias_variable([128], "bias")
+        flat = tf.reshape(pool_2, [-1, 4096])
+        h = tf.nn.relu(tf.matmul(flat, W3) + b3)
+        h_dropout = tf.nn.dropout(h, keep_prob=0.8)
+    # 输出层
+    with tf.name_scope('output_layer'):
+        W4 = weight_variable([128, 10], name="weight")
+        b4 = bias_variable([10], name="bias")
+        forward = tf.matmul(h_dropout, W4) + b4
+        pred = tf.nn.softmax(forward)
+    return forward

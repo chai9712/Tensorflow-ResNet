@@ -6,8 +6,8 @@ from dataset import *
 
 def main():
     _, _, test_x, test_y, label2name = cifar_10_data(FLAGS.data_dir)
-    test_x = test_x[0:200]
-    test_y = test_y[0:200]
+    test_x = test_x[0:1000]
+    test_y = test_y[0:1000]
     with tf.name_scope("input_data"):
         X = tf.placeholder(tf.float32, [None, 32, 32, 3], name='input')
 
@@ -18,12 +18,17 @@ def main():
 
     istrue = tf.equal(tf.argmax(predict, 1), tf.argmax(Y_onehot, 1))
     accuary = tf.reduce_mean(tf.cast(istrue, tf.float32))
-
+    loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels=Y_onehot, logits=predict))
     with tf.Session() as sess:
         saver = tf.train.Saver(tf.global_variables(), max_to_keep=3)
-        saver.restore(sess, "checkpoint/model_5.ckpt")
-        var_test_acc = sess.run(accuary, feed_dict={X: test_x, Y: test_y})
+        ckpt = tf.train.get_checkpoint_state("checkpoint/")
+        if ckpt and ckpt.model_checkpoint_path:
+            saver.restore(sess, ckpt.model_checkpoint_path)
+        else:
+            sess.run(tf.global_variables_initializer())
+        var_test_acc, var_predict, var_loss = sess.run([accuary, predict, loss], feed_dict={X: test_x, Y: test_y})
         print('acc: %.5f' % var_test_acc)
+        print(var_predict, var_loss)
 
 
 

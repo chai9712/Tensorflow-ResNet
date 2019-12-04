@@ -16,7 +16,7 @@ def cifar_10_data(dir):
     train_x = []
     train_y = []
     filename = dir + r'\data_batch_'
-    for i in range(1, 5):
+    for i in range(1, 6):
         cur_file = filename + str(i)
         dicts = unpickle(cur_file)
         images = dicts[b'data'].reshape([10000, 3, 32, 32]).transpose([0, 2, 3, 1]).astype(np.float32) / 255.0
